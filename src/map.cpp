@@ -5517,7 +5517,12 @@ void map::remove_submap_camp( const tripoint &p )
 
 basecamp map::hoist_submap_camp( const tripoint &p )
 {
-    basecamp *pcamp = get_submap_at( p )->camp.get();
+    submap *const current_submap = get_submap_at( p );
+    if( current_submap == nullptr || !(current_submap->camp))  {
+        debugmsg( "Tried to hoist camp at (%d,%d,%d) but the submap is not loaded", p.x, p.y, p.z );
+        return basecamp();
+    }
+    basecamp *pcamp = current_submap->camp.get();
     return pcamp ? *pcamp : basecamp();
 }
 
@@ -5525,7 +5530,7 @@ void map::add_camp( const tripoint_abs_omt &omt_pos, const std::string &name )
 {
     basecamp temp_camp = basecamp( name, omt_pos );
     overmap_buffer.add_camp( temp_camp );
-    g->u.camps.insert( omt_pos );
+    get_player_character().camps.insert( omt_pos );
     g->validate_camps();
 }
 
@@ -5533,8 +5538,14 @@ void map::update_submap_active_item_status( const tripoint &p )
 {
     point l;
     submap *const current_submap = get_submap_at( p, l );
+    if( current_submap == nullptr || !(current_submap->camp))  {
+        debugmsg( "Tried to update active items at (%d,%d) but the submap is not loaded", l.x, l.y );
+        return;
+    }
     if( current_submap->active_items.empty() ) {
-        submaps_with_active_items.erase( tripoint( abs_sub.x + p.x / SEEX, abs_sub.y + p.y / SEEY, p.z ) );
+        // TODO: fix point types
+        submaps_with_active_items.erase(
+            tripoint_abs_sm( abs_sub.x() + p.x / SEEX, abs_sub.y() + p.y / SEEY, p.z ) );
     }
 }
 
